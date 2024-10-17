@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const axiosInstance = axios.create({
-    timeout: 10000,
+    timeout: 100000,
 });
 
 export const apiConnector = async (method, url, bodyData = null, header = {}, params = null) => {

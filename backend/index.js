@@ -12,7 +12,7 @@ app.use(cors());
 dbConnect();
 
 app.use("/api/v1/auth", userRoute)
-app.use("/api/v1/torrent", torrentRoute);
+app.use("/api/v1/torrents", torrentRoute);
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
