@@ -1,23 +1,23 @@
+/* eslint-disable no-loop-func */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react'
 import {useLocation} from 'react-router-dom';
 import PaginationComponent from '../components/Pagination.js';
+import MovieDetails from '../components/MovieDetails.js';
 
 const Search = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResult, setSearchResult] = useState("");
     const [loading, setLoading] = useState(false);
-    const [recentResult, setRecentResult] = useState();
+    const [movieDetails, setMovieDetails] = useState(null)
     let allResults = [];
-    let movieDetails = [];
     const location = useLocation()
 
     useEffect(() => {
         allResults = []
-        movieDetails = []
     },[])
-    const keywords = ['1337x', 'yts', 'torlock', 'piratebay', 'rarbg', 'kickass'];
+    const keywords = ['yts', 'torlock', 'piratebay', 'rarbg', 'kickass'];
 
     const changeHandler = (e) => {
         setSearchTerm(e.target.value);
@@ -28,17 +28,51 @@ const Search = () => {
         console.log(searchTerm)
 
         await TorrentSearcher(searchTerm)
+        await DetailsSearcher(searchTerm)
     }
 
+
+    const isRelevant = (result, searchTerm) => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        const title = result.Name ? result.Name.toLowerCase() : "";
+        const genre = result.Genre ? result.Genre.toLowerCase() : "";
+    
+        return title.includes(lowerCaseSearchTerm) || genre.includes(lowerCaseSearchTerm);
+    };
+    
+    const relevanceScore = (result, searchTerm) => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        const title = result.Name ? result.Name.toLowerCase() : "";
+        const genre = result.Genre ? result.Genre.toLowerCase() : "";
+    
+        let score = 0;
+    
+        if (title === lowerCaseSearchTerm) score += 5; 
+        else if (title.includes(lowerCaseSearchTerm)) score += 3;
+    
+        if (genre.includes(lowerCaseSearchTerm)) score += 2;
+    
+        return score;
+    };
+
+    const DetailsSearcher = async (searchTerm) => {
+        const query = encodeURIComponent(searchTerm)
+        const DETAILS_URL = process.env.REACT_APP_DETAILS_URL;
+
+        const response = await fetch(DETAILS_URL + `&t=${query}`)
+        const data = await response.json()
+        console.log(DETAILS_URL + `&t=${query}`)
+        console.log(data)
+        setMovieDetails(data);
+        console.log('Movie Details -> ', movieDetails)
+    }
     const TorrentSearcher = async (searchTerm) => {
         const query = encodeURIComponent(searchTerm)
         const BASE_URL = process.env.REACT_APP_MAGNET_URL;
-        console.log(BASE_URL)
         for (const keyword of keywords) {
             try {
                 setLoading(true);
                 const response = await fetch(BASE_URL + `/${keyword}/${query}`);
-                console.log(BASE_URL + `/${keyword}/${query}`);
 
                 if(!response.ok) {
                     console.log("Something happened")
@@ -46,16 +80,9 @@ const Search = () => {
                 }
 
                 const data = await response.json();
-                console.log("Individual data -> ", data)
-                if(keyword === "1337x") setRecentResult(data); // Since the data is independent of the query
-                else if (keyword === "yts") { // has the movie details
-                    // eslint-disable-next-line no-loop-func
+                console.log("Individual data -> ", keyword, data)
+                if (keyword === "yts") { // has the movie details
                     data.forEach(result => {
-                        const { Name, ReleasedDate, Genre, Rating, Likes, Runtime, Language="", Poster } = result;
-                        const movieDetail = { Name, ReleasedDate, Genre, Rating, Likes, Runtime, Language, Poster };
-                
-                        movieDetails.push(movieDetail);
-                
                         if (result.Files && result.Files.length > 0) {
                             allResults.push(...result.Files);
                         }
@@ -64,19 +91,24 @@ const Search = () => {
                 // They have different structure of the result
                 else if(keyword === "piratebay" || keyword === 'rarbg' || keyword === 'kickass' || keyword === 'torlock') {
                     console.log("Piratebay data -> ", data);
-                    allResults = [...allResults, ...data]
+                    allResults = [...allResults, ...data.filter(result => isRelevant(result, searchTerm))]
                 }
                 else 
-                    allResults = [...allResults, ...data.results];
+                    allResults = [...allResults, ...data.results.filter(result => isRelevant(result, searchTerm))];
             } 
             catch (error) {
                 console.error(`Error fetching data for keyword: ${keyword}`, error);
             }
         }
-
+        allResults.sort((a, b) => {
+            if (b.Seeders !== a.Seeders) {
+                return b.Seeders - a.Seeders;  // Sort by seeders in descending order
+            } else {
+                return a.Leechers - b.Leechers;  // If seeders are equal, sort by leechers in descending order
+            }
+        });
+        
         console.log("All result -> ", allResults)
-        console.log('Movie Details -> ', movieDetails)
-        console.log("Home page -> ", recentResult);
         setSearchResult(allResults);
         setLoading(false);
     }
@@ -95,6 +127,9 @@ const Search = () => {
                     </button>
                 </div>
             </div>
+            {
+                movieDetails !== null && !loading && <MovieDetails movieDetails={movieDetails} />
+            }
             <div className='w-9/12 flex justify-center items-center'>
                 {
                     loading && (
@@ -106,10 +141,7 @@ const Search = () => {
                     )
                 }
                 {
-                    !allResults && (<PaginationComponent movieList={recentResult} />)
-                }
-                {
-                    allResults && (<PaginationComponent movieList={allResults} />)
+                    allResults.length > 0 && (<PaginationComponent movieList={allResults} movieDetails={movieDetails}/>)
                 }
 
             </div>

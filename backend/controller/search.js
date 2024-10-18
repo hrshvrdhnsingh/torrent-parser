@@ -1,9 +1,8 @@
-const WebTorrent = (...args) => import('webtorrent').then(({default: fetch}) => fetch(...args));
-// const client = new WebTorrent();
-const TorrentSearchApi = require('torrent-search-api');
-TorrentSearchApi.enableProvider('Torrent9');
 
-/* exports.downloadTorrent = async (req, res) => {
+
+exports.downloadTorrent = async (req, res) => {
+    const WebTorrent = await import('webtorrent');
+    const client = WebTorrent();
     try {
         const torrentId = req.body.magnetLink;
         console.log("Magnet Link : ", torrentId);
@@ -43,24 +42,6 @@ TorrentSearchApi.enableProvider('Torrent9');
         return res.json({
             success: false,
             messsage: err.message
-        })
-    }
-} */
-
-
-exports.searchTorrents = async (req, res) => {
-    try {
-        const {query, category, limit} = req.body;
-        const torrents = await TorrentSearchApi.search(query, category, limit || 20);
-
-        console.log("Obtained Torrents -> ", torrents);
-    }
-    catch(err) {
-        console.log(err);
-        return res.status(400).json({
-            success: false,
-            message: "Something went wrong while searching for query.",
-            description: err.message
         })
     }
 }
