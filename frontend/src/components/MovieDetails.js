@@ -2,7 +2,7 @@ import React from 'react'
 
 const MovieDetails = ({movieDetails}) => {
     return (
-        <div className='w-8/12 h-[60vh] glass2 mt-12 p-4 flex justify-center items-center gap-4'>
+        <div className='w-8/12 h-[60vh] glass2 mt-24 p-4 flex justify-center items-center gap-4'>
             <div className='w-4/12 h-full rounded-xl overflow-hidden'><img src={movieDetails?.Poster} alt='' className='object-fit w-full h-full'/></div>
             <div className='w-8/12 h-full flex flex-col gap-2'>
                 <h1 className='text-3xl font-medium bg-gradient-to-r from-[#fd5efde7] to-[#1900ff] text-transparent bg-clip-text'>{movieDetails.Title}</h1>

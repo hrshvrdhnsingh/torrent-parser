@@ -11,12 +11,10 @@ const Search = () => {
     const [searchResult, setSearchResult] = useState("");
     const [loading, setLoading] = useState(false);
     const [movieDetails, setMovieDetails] = useState(null)
-    let allResults = [];
+    const [allResults, setAllResults] = useState([])
     const location = useLocation()
 
-    useEffect(() => {
-        allResults = []
-    },[])
+    let tempResults = []
     const keywords = ['yts', 'torlock', 'piratebay', 'rarbg', 'kickass'];
 
     const changeHandler = (e) => {
@@ -30,7 +28,6 @@ const Search = () => {
         await TorrentSearcher(searchTerm)
         await DetailsSearcher(searchTerm)
     }
-
 
     const isRelevant = (result, searchTerm) => {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -61,10 +58,7 @@ const Search = () => {
 
         const response = await fetch(DETAILS_URL + `&t=${query}`)
         const data = await response.json()
-        console.log(DETAILS_URL + `&t=${query}`)
-        console.log(data)
         setMovieDetails(data);
-        console.log('Movie Details -> ', movieDetails)
     }
     const TorrentSearcher = async (searchTerm) => {
         const query = encodeURIComponent(searchTerm)
@@ -76,7 +70,7 @@ const Search = () => {
 
                 if(!response.ok) {
                     console.log("Something happened")
-                    return;
+                    continue;
                 }
 
                 const data = await response.json();
@@ -84,37 +78,42 @@ const Search = () => {
                 if (keyword === "yts") { // has the movie details
                     data.forEach(result => {
                         if (result.Files && result.Files.length > 0) {
-                            allResults.push(...result.Files);
+                            tempResults.push(...result.Files);
                         }
                     });
                 }
                 // They have different structure of the result
                 else if(keyword === "piratebay" || keyword === 'rarbg' || keyword === 'kickass' || keyword === 'torlock') {
                     console.log("Piratebay data -> ", data);
-                    allResults = [...allResults, ...data.filter(result => isRelevant(result, searchTerm))]
+                    tempResults = [...tempResults, ...data.filter(result => isRelevant(result, searchTerm))]
                 }
                 else 
-                    allResults = [...allResults, ...data.results.filter(result => isRelevant(result, searchTerm))];
+                    tempResults = [...tempResults, ...data.results.filter(result => isRelevant(result, searchTerm))];
             } 
             catch (error) {
                 console.error(`Error fetching data for keyword: ${keyword}`, error);
             }
         }
-        allResults.sort((a, b) => {
+        tempResults.sort((a, b) => {
             if (b.Seeders !== a.Seeders) {
                 return b.Seeders - a.Seeders;  // Sort by seeders in descending order
             } else {
                 return a.Leechers - b.Leechers;  // If seeders are equal, sort by leechers in descending order
             }
         });
-        
+        setAllResults(tempResults);
+        console.log("Temp Resulst->", tempResults)
         console.log("All result -> ", allResults)
-        setSearchResult(allResults);
         setLoading(false);
     }
+    useEffect(() => {
+        if (allResults.length > 0) {
+            console.log("All results have been updated", allResults);
+        }
+    }, [allResults])
      return (
         <div className='z-50 w-screen flex flex-col items-center min-h-screen'>
-            <div className='w-9/12 flex justify-center items-center'>
+            <div className='w-full navbar flex justify-center items-center fixed z-[999]'>
                 <div className="messageBox w-11/12 mt-4">
                     <form onSubmit={submitHandler} className="fileUploadWrapper w-full">
                         <input required="" value={searchTerm} placeholder="Search for the desired torrents..." type="text" id="messageInput" className='w-full' autoComplete="off" onChange={changeHandler}/>
@@ -130,10 +129,10 @@ const Search = () => {
             {
                 movieDetails !== null && !loading && <MovieDetails movieDetails={movieDetails} />
             }
-            <div className='w-9/12 flex justify-center items-center'>
+            <div className='w-9/12 flex justify-center items-center min-h-screen'>
                 {
                     loading && (
-                        <div className='absolute top-0 left-0 w-screen h-screen bg-neutral-900 bg-opacity-90'>
+                        <div className='absolute top-0 z-[100] left-0 w-screen h-screen bg-neutral-900 bg-opacity-90'>
                             <div className='loader'>
                                 <div className='inner'></div>
                             </div>
@@ -143,7 +142,6 @@ const Search = () => {
                 {
                     allResults.length > 0 && (<PaginationComponent movieList={allResults} movieDetails={movieDetails}/>)
                 }
-
             </div>
         </div>
     )
