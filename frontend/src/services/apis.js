@@ -6,5 +6,5 @@ export const authEndpoints = {
 }
 
 export const torrentEndpoints = {
-    SEARCH_API : BASE_URL + "/search",
+    DOWNLOAD_API : BASE_URL + "/torrents/download",
 }
